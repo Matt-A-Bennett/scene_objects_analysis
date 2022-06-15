@@ -1,6 +1,10 @@
 library(tidyverse)
 library(ggplot2)
-B = 1000        # number of samples (with replacement)
+B = 100000        # number of samples (with replacement)
+plot_font_size = 21
+capFirst <- function(s) {
+    paste(toupper(substring(s, 1, 1)), substring(s, 2), sep = "")
+}
 
 # subs = 10
 # classified = scene/object (2) 
@@ -27,6 +31,7 @@ df$classify <- as.factor(df$classify)
 df$roi <- as.factor(df$roi)
 df$task <- as.factor(df$task)
 df$acc <- df$acc-0.5
+df$task <- capFirst(df$task)
 # EXPERIMENT 1
 # preallocate
 lower = rep(-1,18)
@@ -36,7 +41,7 @@ p = rep(-1,18)
 loop_count = 0
 for (classify_idx in c('object', 'scene')) {
     for (roi_idx in c('ff', 'fov', 'peri')) {
-        for (task_idx in c('both', 'object', 'scene')) {
+        for (task_idx in c('Both', 'Object', 'Scene')) {
             loop_count = loop_count + 1
             # print(c(classify_idx, roi_idx, task_idx))
             tmp <- subset(df, classify==classify_idx & roi==roi_idx & task==task_idx)
@@ -54,27 +59,31 @@ means <- df %>% group_by(classify, roi, task) %>%
 means$lower_boot <- lower
 means$upper_boot <- upper
 means$pvals <- p
-# means %>% as_tibble() %>% print(n_subs=18)
+means$sig_bonf <- means$pvals < 0.05/8
+# print(filter(means, roi!='ff' & roi!='fovV123' & task!='Both'))
 summarise(acc = mean(acc))
 # plot interesting parts of the data (ignore FF roi and combined task data)
-task_names <- as_labeller(c('Scene', 'Object'))
-subset(df, roi!='ff' & task!='both') %>% 
-    ggplot(aes(x=factor(roi, c('peri', 'fov')),
-               y=acc, 
-               fill=factor(classify, c('scene', 'object')))) +
-           geom_hline(yintercept=0) +
-           geom_bar(stat='summary',
-                    position=position_dodge(width=0.8), width=0.7, color='black') +
-           geom_point(position=position_jitterdodge(jitter.width=0.2), color='darkgrey') +
-           geom_errorbar(data=subset(means, roi!='ff' & task!='both'),
-                         aes(ymin=lower_boot, ymax=upper_boot),
-                         position=position_dodge(width=0.8), width=0.3) +
-           scale_fill_manual(values = c('cornflowerblue', 'tomato3')) +
-           facet_wrap(~factor(task, c('scene', 'object')), labeller=task_names) +
-           coord_cartesian(ylim = c(-0.2, .2)) + 
-           ylab('Classification Accuracy (-50%)') +
-           xlab('ROI') +
-           labs(fill = 'Classify')
+roi_labels <- c("Foveal", "Peripheral")
+expt1plt <- subset(df, roi!='ff' & task!='Both') %>% 
+ggplot(aes(x=factor(roi, c('peri', 'fov')),
+           y=acc, 
+           fill=factor(classify, c('scene', 'object')))) +
+       geom_hline(yintercept=0) +
+       geom_bar(stat='summary',
+                position=position_dodge(width=0.8), width=0.47, color='black') +
+       geom_point(position=position_jitterdodge(jitter.width=0.2), color='darkgrey') +
+       geom_errorbar(data=subset(means, roi!='ff' & task!='Both'),
+                     aes(ymin=lower_boot, ymax=upper_boot),
+                     position=position_dodge(width=0.8), width=0.2) +
+       scale_fill_manual(values = c('cornflowerblue', 'tomato3')) +
+       facet_wrap(~factor(task)) +
+       coord_cartesian(ylim = c(-0.15, .2)) + 
+       scale_x_discrete(labels=roi_labels) +
+       labs(title='Task', x='ROI', y='Classification Accuracy (-50%)', fill='Classify') + 
+       theme(text=element_text(size=plot_font_size),
+             plot.title = element_text(hjust = 0.5))
+ggsave('experiment1.png', plot=expt1plt, width=8, height=8, dpi=600)
+# print(filter(means, roi!='ff' & roi!='fovV123' & task!='Both'))
 
 # EXPERIMENT 2
 # subs = 18
@@ -102,6 +111,7 @@ df$classify <- as.factor(df$classify)
 df$roi <- as.factor(df$roi)
 df$task <- as.factor(df$task)
 df$acc <- df$acc-0.5
+df$task <- capFirst(df$task)
 # preallocate
 lower = rep(-1,48)
 upper = rep(-1,48)
@@ -110,7 +120,7 @@ p = rep(-1,48)
 loop_count = 0
 for (classify_idx in c('bbq', 'object', 'scene', 'tent')) {
     for (roi_idx in c('ff', 'fov', 'fovV123', 'peri')) {
-        for (task_idx in c('both', 'object', 'scene')) {
+        for (task_idx in c('Both', 'Object', 'Scene')) {
             loop_count = loop_count + 1
             # print(c(classify_idx, roi_idx, task_idx))
             tmp <- subset(df, classify==classify_idx & roi==roi_idx & task==task_idx)
@@ -128,10 +138,10 @@ means <- df %>% group_by(classify, roi, task) %>%
 means$lower_boot <- lower
 means$upper_boot <- upper
 means$pvals <- p
-means %>% as_tibble() %>% print(n=48)
+means$sig_bonf <- means$pvals < 0.05/16
 # plot interesting parts of the data (ignore FF roi and combined task data)
-task_names <- as_labeller(c('Scene', 'Object'))
-subset(df, roi!='ff' & roi!='fovV123' & task!='both') %>%
+roi_labels <- c("Foveal", "Peripheral")
+expt2plt <- subset(df, roi!='ff' & roi!='fovV123' & task!='Both') %>%
 ggplot(aes(x=factor(roi, c('peri', 'fov')),
            y=acc,
            fill=factor(classify, c('scene', 'bbq', 'tent', 'object')))) +
@@ -139,13 +149,16 @@ ggplot(aes(x=factor(roi, c('peri', 'fov')),
        geom_bar(stat='summary',
                 position=position_dodge(width=0.8), width=0.7, color='black') +
        geom_point(position=position_jitterdodge(jitter.width=0.2), color='darkgrey') +
-       geom_errorbar(data=subset(means, roi!='ff' & task!='both'),
+       geom_errorbar(data=subset(means, roi!='ff' & task!='Both'),
                      aes(ymin=lower_boot, ymax=upper_boot),
                      position=position_dodge(width=0.8), width=0.3) +
        scale_fill_manual(values = c('cornflowerblue', 'mediumpurple2', 'mediumpurple2', 'tomato3')) +
-       facet_wrap(~factor(task, c('scene', 'object')), labeller=task_names) +
-       coord_cartesian(ylim = c(-0.2, .2)) + 
-       ylab('Classification Accuracy (-50%)') +
-       xlab('ROI') +
-       labs(fill = 'Classify')
+       facet_wrap(~factor(task)) +
+       coord_cartesian(ylim = c(-0.15, .2)) + 
+       scale_x_discrete(labels=roi_labels) +
+       labs(title='Task', x='ROI', y='Classification Accuracy (-50%)', fill='Classify') +
+       theme(text=element_text(size=plot_font_size),
+             plot.title = element_text(hjust = 0.5))
+ggsave('experiment2.png', plot=expt2plt, width=8, height=8, dpi=600)
+# print(filter(means, roi!='ff' & roi!='fovV123' & task!='Both'))
 
