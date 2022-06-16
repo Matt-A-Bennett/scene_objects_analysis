@@ -65,8 +65,9 @@ pvals < 0.05/8 & pvals < 0.001 ~ '**',
 pvals < 0.05/8 & pvals < 0.05 ~ '*',
 pvals >= 0.05/8 ~ ''
 ))
-# print(filter(means, roi!='ff' & roi!='fovV123' & task!='Both'))
-summarise(acc = mean(acc))
+print(mutate(means, acc_base = acc*100 + 50) %>%
+      select(classify:upper_boot, base_acc, everything()) %>%
+      filter(roi!='ff' & roi!='fovV123' & task!='Both'))
 # plot interesting parts of the data (ignore FF roi and combined task data)
 roi_labels <- c("Foveal", "Peripheral")
 expt1plt <- subset(df, roi!='ff' & task!='Both') %>% 
@@ -92,7 +93,6 @@ expt1plt <- subset(df, roi!='ff' & task!='Both') %>%
       theme(text=element_text(size=plot_font_size),
             plot.title = element_text(hjust = 0.5))
 ggsave('experiment1_sigastr.png', plot=expt1plt, width=8, height=8, dpi=600)
-# print(filter(means, roi!='ff' & roi!='fovV123' & task!='Both'))
 
 # EXPERIMENT 2
 # subs = 18
@@ -153,6 +153,9 @@ pvals < 0.05/16 & pvals < 0.001 ~ '**',
 pvals < 0.05/16 & pvals < 0.05 ~ '*',
 pvals >= 0.05/8 ~ ''
 ))
+print(mutate(means, acc_base = acc*100 + 50) %>%
+      select(classify:upper_boot,acc_base , everything()) %>%
+      filter(roi!='ff' & roi!='fovV123' & task!='Both'))
 # plot interesting parts of the data (ignore FF roi and combined task data)
 roi_labels <- c("Foveal", "Peripheral")
 expt2plt <- subset(df, roi!='ff' & roi!='fovV123' & task!='Both') %>%
@@ -178,5 +181,4 @@ ggplot(aes(x=factor(roi, c('peri', 'fov')),
        theme(text=element_text(size=plot_font_size),
              plot.title = element_text(hjust = 0.5))
 ggsave('experiment2.png', plot=expt2plt, width=8, height=8, dpi=600)
-# print(filter(means, roi!='ff' & roi!='fovV123' & task!='Both'))
 
