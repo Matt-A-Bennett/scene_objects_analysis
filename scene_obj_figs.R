@@ -59,30 +59,39 @@ means <- df %>% group_by(classify, roi, task) %>%
 means$lower_boot <- lower
 means$upper_boot <- upper
 means$pvals <- p
-means$sig_bonf <- means$pvals < 0.05/8
+means <- means %>% mutate(sig_bonf = case_when(
+pvals < 0.05/8 & pvals < 0.0001 ~ '***',
+pvals < 0.05/8 & pvals < 0.001 ~ '**',
+pvals < 0.05/8 & pvals < 0.05 ~ '*',
+pvals >= 0.05/8 ~ ''
+))
 # print(filter(means, roi!='ff' & roi!='fovV123' & task!='Both'))
 summarise(acc = mean(acc))
 # plot interesting parts of the data (ignore FF roi and combined task data)
 roi_labels <- c("Foveal", "Peripheral")
 expt1plt <- subset(df, roi!='ff' & task!='Both') %>% 
-ggplot(aes(x=factor(roi, c('peri', 'fov')),
+    ggplot(aes(x=factor(roi, c('peri', 'fov')),
            y=acc, 
            fill=factor(classify, c('scene', 'object')))) +
-       geom_hline(yintercept=0) +
-       geom_bar(stat='summary',
-                position=position_dodge(width=0.8), width=0.47, color='black') +
-       geom_point(position=position_jitterdodge(jitter.width=0.2), color='darkgrey') +
-       geom_errorbar(data=subset(means, roi!='ff' & task!='Both'),
-                     aes(ymin=lower_boot, ymax=upper_boot),
-                     position=position_dodge(width=0.8), width=0.2) +
-       scale_fill_manual(values = c('cornflowerblue', 'tomato3')) +
-       facet_wrap(~factor(task)) +
-       coord_cartesian(ylim = c(-0.15, .2)) + 
-       scale_x_discrete(labels=roi_labels) +
-       labs(title='Task', x='ROI', y='Classification Accuracy (-50%)', fill='Classify') + 
-       theme(text=element_text(size=plot_font_size),
-             plot.title = element_text(hjust = 0.5))
-ggsave('experiment1.png', plot=expt1plt, width=8, height=8, dpi=600)
+      geom_hline(yintercept=0) +
+      geom_bar(stat='summary',
+               position=position_dodge(width=0.8), width=0.47, color='black') +
+      geom_point(position=position_jitterdodge(jitter.width=0.2), color='darkgrey') +
+      geom_errorbar(data=subset(means, roi!='ff' & task!='Both'),
+                    aes(ymin=lower_boot, ymax=upper_boot),
+                    position=position_dodge(width=0.8), width=0.2) +
+       geom_text(data=subset(means, roi!='ff' & task!='Both'),
+                 aes(y = -0.015, label = sig_bonf),
+                 position = position_dodge(width = .8),
+                 size = 6) +
+      scale_fill_manual(values = c('cornflowerblue', 'tomato3')) +
+      facet_wrap(~factor(task)) +
+      coord_cartesian(ylim = c(-0.15, .2)) + 
+      scale_x_discrete(labels=roi_labels) +
+      labs(title='Task', x='ROI', y='Classification Accuracy (-50%)', fill='Classify') + 
+      theme(text=element_text(size=plot_font_size),
+            plot.title = element_text(hjust = 0.5))
+ggsave('experiment1_sigastr.png', plot=expt1plt, width=8, height=8, dpi=600)
 # print(filter(means, roi!='ff' & roi!='fovV123' & task!='Both'))
 
 # EXPERIMENT 2
@@ -138,7 +147,12 @@ means <- df %>% group_by(classify, roi, task) %>%
 means$lower_boot <- lower
 means$upper_boot <- upper
 means$pvals <- p
-means$sig_bonf <- means$pvals < 0.05/16
+means <- means %>% mutate(sig_bonf = case_when(
+pvals < 0.05/16 & pvals < 0.0001 ~ '***',
+pvals < 0.05/16 & pvals < 0.001 ~ '**',
+pvals < 0.05/16 & pvals < 0.05 ~ '*',
+pvals >= 0.05/8 ~ ''
+))
 # plot interesting parts of the data (ignore FF roi and combined task data)
 roi_labels <- c("Foveal", "Peripheral")
 expt2plt <- subset(df, roi!='ff' & roi!='fovV123' & task!='Both') %>%
@@ -152,6 +166,10 @@ ggplot(aes(x=factor(roi, c('peri', 'fov')),
        geom_errorbar(data=subset(means, roi!='ff' & task!='Both'),
                      aes(ymin=lower_boot, ymax=upper_boot),
                      position=position_dodge(width=0.8), width=0.3) +
+       geom_text(data=subset(means, roi!='ff' & task!='Both'),
+                 aes(y = -0.015, label = sig_bonf),
+                 position = position_dodge(width = .8),
+                 size = 6) +
        scale_fill_manual(values = c('cornflowerblue', 'mediumpurple2', 'mediumpurple2', 'tomato3')) +
        facet_wrap(~factor(task)) +
        coord_cartesian(ylim = c(-0.15, .2)) + 
